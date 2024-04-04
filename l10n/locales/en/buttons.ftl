@@ -1,0 +1,2 @@
+
+example-btn = Main menu

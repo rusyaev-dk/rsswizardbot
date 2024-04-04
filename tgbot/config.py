@@ -147,6 +147,18 @@ class Miscellaneous:
     other_params: str = None
 
 
+# @dataclass
+# class ApiConfig:
+#
+#     api_key: str
+#
+#     @staticmethod
+#     def from_env(env: Env):
+#         api_key = env.str("API_KEY")
+#
+#         return ApiConfig(api_key=api_key)
+
+
 @dataclass
 class Config:
     """
@@ -170,6 +182,7 @@ class Config:
     misc: Miscellaneous
     db: Optional[DbConfig] = None
     redis: Optional[RedisConfig] = None
+    # api: ApiConfig
 
 
 def load_config(path: str = None) -> Config:
@@ -189,5 +202,6 @@ def load_config(path: str = None) -> Config:
         tg_bot=TgBot.from_env(env),
         # db=DbConfig.from_env(env),
         # redis=RedisConfig.from_env(env),
+        # api=ApiConfig.from_env(env),
         misc=Miscellaneous(),
     )
