@@ -1,40 +1,24 @@
 import asyncio
 import logging
+import os
+from pathlib import Path
 
 import betterlogging as bl
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from infrastructure.database.setup import create_engine, create_session_pool
+from l10n.translator import TranslatorHub
 from tgbot.config import load_config, Config
 from tgbot.handlers import routers_list
-from tgbot.middlewares.config import ConfigMiddleware
+from tgbot.middlewares.database import OuterDatabaseMiddleware, InnerDatabaseMiddleware, UserExistingMiddleware
+from tgbot.middlewares.l10n import L10nMiddleware
+from tgbot.middlewares.throttling import ThrottlingMiddleware
+from tgbot.misc.constants import DEFAULT_THROTTLE_TIME
 from tgbot.services import broadcaster
-
-
-async def on_startup(bot: Bot, admin_ids: list[int]):
-    await broadcaster.broadcast(bot, admin_ids, "Bot started!")
-
-
-def register_global_middlewares(dp: Dispatcher, config: Config, session_pool=None):
-    """
-    Register global middlewares for the given dispatcher.
-    Global middlewares here are the ones that are applied to all the handlers (you specify the type of update)
-
-    :param dp: The dispatcher instance.
-    :type dp: Dispatcher
-    :param config: The configuration object from the loaded configuration.
-    :param session_pool: Optional session pool object for the database using SQLAlchemy.
-    :return: None
-    """
-    middleware_types = [
-        ConfigMiddleware(config),
-        # DatabaseMiddleware(session_pool),
-    ]
-
-    for middleware_type in middleware_types:
-        dp.message.outer_middleware(middleware_type)
-        dp.callback_query.outer_middleware(middleware_type)
 
 
 def setup_logging():
@@ -83,20 +67,87 @@ def get_storage(config):
         return MemoryStorage()
 
 
+def setup_translator(
+    locales_dir_path: str
+) -> TranslatorHub:
+
+    all_files = os.listdir(locales_dir_path + "/ru")
+    fluent_files = [file for file in all_files if file.endswith(".ftl")]
+
+    translator_hub = TranslatorHub(
+        locales_dir_path=str(locales_dir_path), locales=["ru", "uz", "en"],
+        resource_ids=fluent_files
+    )
+    return translator_hub
+
+
+def register_global_middlewares(
+        dp: Dispatcher,
+        translator_hub: TranslatorHub,
+        session_pool: async_sessionmaker,
+):
+    dp.message.outer_middleware(OuterDatabaseMiddleware(session_pool))
+    dp.callback_query.outer_middleware(OuterDatabaseMiddleware(session_pool))
+
+    dp.message.middleware(ThrottlingMiddleware(
+        default_throttle_time=DEFAULT_THROTTLE_TIME))
+
+    dp.message.middleware(InnerDatabaseMiddleware())
+    dp.callback_query.middleware(InnerDatabaseMiddleware())
+
+    dp.message.middleware(UserExistingMiddleware())
+
+    dp.message.middleware(L10nMiddleware(translator_hub))
+    dp.callback_query.middleware(L10nMiddleware(translator_hub))
+
+
+# def setup_scheduling(
+#         scheduler: AsyncIOScheduler,
+#         bot: Bot,
+#         config: Config,
+#         translator_hub: TranslatorHub,
+#         session_pool: async_sessionmaker
+# ):
+
+
+async def on_startup(bot: Bot, admin_ids: list[int]):
+    await broadcaster.broadcast(bot, admin_ids, "Bot started!")
+
+
 async def main():
     setup_logging()
 
     config = load_config(".env")
     storage = get_storage(config)
-
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
+
+    # Localization initialization:
+    locales_dir_path = Path(__file__).parent.joinpath("l10n/locales")
+    translator_hub = setup_translator(locales_dir_path=str(locales_dir_path))
+
+    # Routers and dialogs initialization:
     dp = Dispatcher(storage=storage)
-
     dp.include_routers(*routers_list)
+    # setup_dialogs(dp)
+    dp.workflow_data.update(config=config, translator_hub=translator_hub)
 
-    register_global_middlewares(dp, config)
+    # Database initialization:
+    engine = create_engine(db=config.db)
+    session_pool = create_session_pool(engine=engine)
+
+    # Middlewares initialization:
+    register_global_middlewares(
+        dp=dp,
+        translator_hub=translator_hub,
+        session_pool=session_pool
+    )
+
+    # Scheduling initialization:
+    # scheduler = AsyncIOScheduler()
+    # setup_scheduling()
 
     await on_startup(bot, config.tg_bot.admin_ids)
+    # scheduler.start()
     await dp.start_polling(bot)
 
 
