@@ -4,7 +4,7 @@ Telegram Bot Template v3 is a customizable template for creating Telegram bots u
 
 ## Features
 
-- Integration with a database for storing and retrieving data.
+- Integration with a PostgreSQL database for storing and retrieving data via SQLAlchemy ORM.
 - Custom HTTP client for making requests to external APIs.
 - Clear separation of concerns with distinct data and domain layers.
 - Implementation of basic features of the aiogram 3.0 library.
