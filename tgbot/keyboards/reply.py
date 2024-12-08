@@ -1,10 +1,10 @@
 from aiogram.types import KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from l10n.translator import LocalizedTranslator
+from l10n.translator import Translator
 
 
-def main_menu_kb(l10n: LocalizedTranslator):
+def main_menu_kb(l10n: Translator):
     builder = ReplyKeyboardBuilder()
 
     buttons = [

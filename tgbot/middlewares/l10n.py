@@ -3,14 +3,11 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 
-
-from l10n.translator import TranslatorHub
+from infrastructure.database.repositories.users_repo import UsersRepository
+from l10n.translator import Translator
 
 
 class L10nMiddleware(BaseMiddleware):
-    def __init__(self, translator_hub: TranslatorHub):
-        self.l10ns = translator_hub.l10ns
-        self.default_locale = translator_hub.default_locale
 
     async def __call__(
         self,
@@ -18,9 +15,12 @@ class L10nMiddleware(BaseMiddleware):
         event: Message,
         data: Dict[str, Any]
     ) -> Any:
-        repo = data["repo"]
-        language_code = await repo.users.get_user_language_code(telegram_id=event.from_user.id)
-        if language_code not in self.l10ns:
-            language_code = self.default_locale
-        data["l10n"] = self.l10ns.get(language_code)
+        container = data["dishka_container"]
+        user_repo = await container.get(UsersRepository)
+        language_code = await user_repo.get_user_language_code(telegram_id=event.from_user.id)
+
+        translator = await container.get(Translator)
+        if language_code in translator.l10ns:
+            translator.change_locale(new_locale=language_code)
+
         await handler(event, data)

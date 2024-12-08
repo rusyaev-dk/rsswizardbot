@@ -1,41 +1,33 @@
 import asyncio
 import logging
-import os
-from pathlib import Path
 
 import betterlogging as bl
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
+from aiogram_dialog import setup_dialogs
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from dishka import AsyncContainer
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from infrastructure.database.setup import create_engine, create_session_pool
-from l10n.translator import TranslatorHub
-from tgbot.config import load_config, Config
+from di.di import setup_dependencies
+from infrastructure.api.clients.http_client import HttpClient
+from infrastructure.database.models import Base
+from infrastructure.database.repositories.users_repo import UsersRepository
+from tgbot.config import Config
 from tgbot.handlers import routers_list
-from tgbot.middlewares.database import OuterDatabaseMiddleware, InnerDatabaseMiddleware, UserExistingMiddleware
+from tgbot.middlewares.database import UserExistingMiddleware
 from tgbot.middlewares.l10n import L10nMiddleware
 from tgbot.middlewares.throttling import ThrottlingMiddleware
 from tgbot.misc.constants import DEFAULT_THROTTLE_TIME
 from tgbot.services import broadcaster
+from tgbot.services.setup_bot_commands import setup_admin_commands
+from dishka.integrations.aiogram import setup_dishka
 
 
 def setup_logging():
-    """
-    Set up logging configuration for the application.
-
-    This method initializes the logging configuration for the application.
-    It sets the log level to INFO and configures a basic colorized log for
-    output. The log format includes the filename, line number, log level,
-    timestamp, logger name, and log message.
-
-    Returns:
-        None
-
-    Example usage:
-        setup_logging()
-    """
     log_level = logging.INFO
     bl.basic_colorized_config(level=log_level)
 
@@ -47,17 +39,9 @@ def setup_logging():
     logger.info("Starting bot")
 
 
-def get_storage(config):
-    """
-    Return storage based on the provided configuration.
-
-    Args:
-        config (Config): The configuration object.
-
-    Returns:
-        Storage: The storage object based on the configuration.
-
-    """
+def setup_storage(
+        config: Config
+):
     if config.tg_bot.use_redis:
         return RedisStorage.from_url(
             config.redis.dsn(),
@@ -67,92 +51,83 @@ def get_storage(config):
         return MemoryStorage()
 
 
-def setup_translator(
-    locales_dir_path: str
-) -> TranslatorHub:
-
-    all_files = os.listdir(locales_dir_path + "/ru")
-    fluent_files = [file for file in all_files if file.endswith(".ftl")]
-
-    translator_hub = TranslatorHub(
-        locales_dir_path=str(locales_dir_path), locales=["ru", "uz", "en"],
-        resource_ids=fluent_files
-    )
-    return translator_hub
-
-
-def register_global_middlewares(
-        dp: Dispatcher,
-        translator_hub: TranslatorHub,
-        session_pool: async_sessionmaker,
+def setup_global_middlewares(
+        dp: Dispatcher
 ):
-    dp.message.outer_middleware(OuterDatabaseMiddleware(session_pool))
-    dp.callback_query.outer_middleware(OuterDatabaseMiddleware(session_pool))
-
     dp.message.middleware(ThrottlingMiddleware(
         default_throttle_time=DEFAULT_THROTTLE_TIME))
 
-    dp.message.middleware(InnerDatabaseMiddleware())
-    dp.callback_query.middleware(InnerDatabaseMiddleware())
-
     dp.message.middleware(UserExistingMiddleware())
 
-    dp.message.middleware(L10nMiddleware(translator_hub))
-    dp.callback_query.middleware(L10nMiddleware(translator_hub))
+    dp.message.middleware(L10nMiddleware())
+    dp.callback_query.middleware(L10nMiddleware())
 
 
-# def setup_scheduling(
-#         scheduler: AsyncIOScheduler,
-#         bot: Bot,
-#         config: Config,
-#         translator_hub: TranslatorHub,
-#         session_pool: async_sessionmaker
-# ):
+async def setup_scheduler(
+        di_container: AsyncContainer
+):
+    scheduler = await di_container.get(AsyncIOScheduler)
+    scheduler.start()
 
 
-async def on_startup(bot: Bot, admin_ids: list[int]):
+async def establish_db(di_container: AsyncContainer):
+    engine: AsyncEngine = await di_container.get(AsyncEngine)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with di_container() as request_container:
+        users_repo = await request_container.get(UsersRepository)
+        try:
+            users_count = await users_repo.get_users_count()
+            logging.info(f"Database connection established. Users in database: {users_count}.")
+        except SQLAlchemyError as e:
+            logging.error(f"Database connection failed. Error: {e}")
+
+
+async def on_startup(
+        bot: Bot,
+        admin_ids: list[int]
+):
     await broadcaster.broadcast(bot, admin_ids, "Bot started!")
+    await setup_admin_commands(bot, admin_ids)
 
 
 async def main():
     setup_logging()
 
-    config = load_config(".env")
-    storage = get_storage(config)
-    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
+    container = await setup_dependencies()
+    http_client: HttpClient = await container.get(HttpClient)
+    config = await container.get(Config)
+    await establish_db(di_container=container)
 
-    # Localization initialization:
-    locales_dir_path = Path(__file__).parent.joinpath("l10n/locales")
-    translator_hub = setup_translator(locales_dir_path=str(locales_dir_path))
-
-    # Routers and dialogs initialization:
-    dp = Dispatcher(storage=storage)
-    dp.include_routers(*routers_list)
-    # setup_dialogs(dp)
-    dp.workflow_data.update(config=config, translator_hub=translator_hub)
-
-    # Database initialization:
-    engine = create_engine(db=config.db)
-    session_pool = create_session_pool(engine=engine)
-
-    # Middlewares initialization:
-    register_global_middlewares(
-        dp=dp,
-        translator_hub=translator_hub,
-        session_pool=session_pool
+    bot = Bot(
+        token=config.tg_bot.token,
+        default=DefaultBotProperties(parse_mode='HTML')
     )
 
-    # Scheduling initialization:
-    # scheduler = AsyncIOScheduler()
-    # setup_scheduling()
+    storage = setup_storage(config)
+    dp = Dispatcher(storage=storage)
+    dp.include_routers(*routers_list)
 
+    setup_dialogs(dp)
+    setup_dishka(container=container, router=dp)
+
+    setup_global_middlewares(dp=dp)
+    dp.workflow_data.update(config=config)
+
+    await setup_scheduler(container)
     await on_startup(bot, config.tg_bot.admin_ids)
-    # scheduler.start()
-    await dp.start_polling(bot)
+
+    try:
+        await dp.start_polling(bot)
+    except (KeyboardInterrupt, SystemExit):
+        logging.error("Stopping bot...")
+    finally:
+        await http_client.close()
+        await container.close()
+        await bot.session.close()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.error("Stopping bot")
+    asyncio.run(main())

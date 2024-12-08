@@ -62,3 +62,8 @@ venv.bak/
 .idea/
 .env
 cache/
+
+*.db
+*.db-journal
+alembic/
+alembic.ini
