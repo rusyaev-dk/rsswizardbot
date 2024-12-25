@@ -1,34 +1,76 @@
-## Telegram Bot Template v3
+# RSS Wizard Bot
 
-Telegram Bot Template v3 is a customizable template for creating Telegram Bots using Python and aiogram 3.X library. It provides a simple structure and basic functionality to kickstart your Telegram Bot development process.
+RSS Wizard Bot is a Telegram bot that helps you manage RSS feeds and stay updated with your favorite news sources directly in Telegram.
+
+---
 
 ## Features
 
-- Integration with a PostgreSQL database for storing and retrieving data via SQLAlchemy ORM.
-- Custom HTTP client for making requests to external APIs.
-- Clear separation of concerns with distinct data and domain layers.
-- Implementation of basic features of the aiogram 3.0 library.
-- Implementation of basic localization feature
-- Custom classes like broadcaster for additional functionality.
+- **Add RSS Feeds**: Easily add new RSS feeds.
+- **View Latest Posts**: Stay updated with the latest news from your sources.
+- **Easy Navigation**: Use pagination to browse entries.
+- **Filter Support**: Filter posts by keywords (coming soon).
+- **Delete Feeds**: Remove unnecessary RSS feeds.
 
-## Getting Started
+---
 
-Follow these steps to set up your Telegram bot using this template:
-1. Clone this repository to your local machine.
-2. Install the required dependencies by running `pip install -r requirements.txt`.
-3. Create a new Telegram Bot using [BotFather](https://core.telegram.org/bots#6-botfather).
-4. Copy your bot's token provided by BotFather.
-5. Replace the `TOKEN` variable in `.env` with your Bot's token.
-6. Customize the Bot's behavior and add your own functionality in the `bot.py` file.
-7. Run `bot.py` to start your Bot: `python bot.py`.
+## How to Run
 
-## Usage
+### Requirements
+- Python 3.10+
+- PostgreSQL
+- Docker (optional)
 
-The `bot.py` file contains the main code for your Telegram Bot. You can customize this file to add new commands, message handlers, or any other functionality your Bot requires.
+### Installation and Launch
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-repo/rsswizardbot.git
+   cd rsswizardbot
+   ```
 
-Here's an example of handling text messages using the aiogram library:
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```python
-@some_router.message()
-async def handle_text(message: types.Message):
-    await message.answer("Hello! You said: " + message.text)
+3. **Set environment variables:**
+   Create a `.env` file in the project root:
+   ```env
+   BOT_TOKEN=your_telegram_bot_token
+   DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/database
+   ```
+
+4. **Run migrations:**
+   ```bash
+   alembic upgrade head
+   ```
+
+5. **Start the bot:**
+   ```bash
+   python bot/bot.py
+   ```
+
+---
+
+## Docker
+
+To run the bot using Docker:
+
+1. **Build the container:**
+   ```bash
+   docker-compose build
+   ```
+
+2. **Start the containers:**
+   ```bash
+   docker-compose up -d
+   ```
+---
+
+## Technologies Used
+
+- **Programming Language**: Python 3.11
+- **Telegram Framework**: Aiogram 3
+- **Database**: PostgreSQL (with SQLAlchemy and Alembic)
+- **DI**: Dishka
+- **RSS Parsing**: Feedparser
