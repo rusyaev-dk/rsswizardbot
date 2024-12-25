@@ -21,10 +21,23 @@ class HttpClient:
             method: str = "GET",
             headers: dict = None,
             params: dict = None
-    ) -> dict:
+    ) -> str:
         async with self.__session.request(method, url, headers=headers, params=params) as response:
             response.raise_for_status()
-            return await response.json()
+
+            # Проверяем MIME-тип ответа
+            content_type = response.headers.get("Content-Type", "").lower()
+            if "application/json" in content_type:
+                return await response.json()
+            elif any(ct in content_type for ct in [
+                "application/rss+xml",  # RSS-ленты
+                "application/xml",  # Общий XML
+                "text/xml",  # Устаревший XML
+                "application/atom+xml"  # Atom-ленты
+            ]):
+                return await response.text()
+            else:
+                raise ValueError(f"Unsupported content type: {content_type}")
 
     async def close(self):
         await self.__session.close()

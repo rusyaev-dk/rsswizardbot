@@ -137,8 +137,8 @@ class Miscellaneous:
     """
     Miscellaneous configuration class.
 
-    This class holds settings_dialog for various other parameters.
-    It merely serves as a placeholder for settings_dialog that are not part of other categories.
+    This class holds settings for various other parameters.
+    It merely serves as a placeholder for settings that are not part of other categories.
 
     Attributes
     ----------
@@ -166,23 +166,23 @@ class Config:
     """
     The main configuration class that integrates all the other configuration classes.
 
-    This class holds the other configuration classes, providing a centralized point of access for all settings_dialog.
+    This class holds the other configuration classes, providing a centralized point of access for all settings.
 
     Attributes
     ----------
     tg_bot : TgBot
-        Holds the settings_dialog related to the Telegram Bot.
+        Holds the settings related to the Telegram Bot.
     misc : Miscellaneous
-        Holds the values for miscellaneous settings_dialog.
+        Holds the values for miscellaneous settings.
     db : Optional[DbConfig]
-        Holds the settings_dialog specific to the database (default is None).
+        Holds the settings specific to the database (default is None).
     redis : Optional[RedisConfig]
-        Holds the settings_dialog specific to Redis (default is None).
+        Holds the settings specific to Redis (default is None).
     """
 
     tg_bot: TgBot
     misc: Miscellaneous
-    api: ApiConfig
+    # api: ApiConfig
     db: DbConfig
     redis: Optional[RedisConfig] = None
 
@@ -191,7 +191,7 @@ def load_config(path: str = None) -> Config:
     """
     This function takes an optional file path as input and returns a Config object.
     :param path: The path of env file from where to load the configuration variables.
-    It reads environment variables from a .env.dist file if provided, else from the process environment.
+    It reads environment variables from a .env file if provided, else from the process environment.
     :return: Config object with attributes set as per environment variables.
     """
 
@@ -204,6 +204,6 @@ def load_config(path: str = None) -> Config:
         tg_bot=TgBot.from_env(env),
         db=DbConfig.from_env(env),
         redis=RedisConfig.from_env(env),
-        api=ApiConfig.from_env(env),
+        # api=ApiConfig.from_env(env),
         misc=Miscellaneous(),
     )

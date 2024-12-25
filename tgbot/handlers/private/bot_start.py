@@ -1,7 +1,8 @@
 import html
 
-from aiogram import Router
+from aiogram import Router, flags
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from dishka import FromDishka
 from dishka.integrations.aiogram import inject
@@ -16,8 +17,21 @@ start_router = Router()
 
 
 @start_router.message(CommandStart())
-async def bot_start(message: Message):
-    await message.reply("Hello!")
+@flags.rate_limit(key="default")
+@inject
+async def bot_start(
+        message: Message,
+        state: FSMContext,
+        l10n: FromDishka[Translator]
+):
+    await state.clear()
+    args = {
+        "name": html.escape(message.from_user.full_name)
+    }
+
+    text = l10n.get_text(key="hello-msg", args=args)
+
+    await message.answer(text, reply_markup=main_menu_kb(l10n=l10n), disable_web_page_preview=True)
 
 
 @start_router.callback_query(SetUserLanguageFactory.filter())
@@ -30,8 +44,6 @@ async def set_user_language(
 ):
     language_code = callback_data.language_code
 
-    # user = await users_repo.get_user(telegram_id=call.from_user.id)
-
     await users_repo.add_user(
         telegram_id=call.from_user.id,
         full_name=call.from_user.full_name,
@@ -43,10 +55,7 @@ async def set_user_language(
     await call.message.delete()
     await update_user_commands(bot=call.bot, l10n=l10n)
     args = {
-        "name": html.escape(call.from_user.full_name),
-        "terms_of_use": f"<a href='{l10n.get_text(key='terms-of-use-link')}'>"
-                        f"<b>{l10n.get_text(key='terms-of-use-name')}</b></a>"
+        "name": html.escape(call.from_user.full_name)
     }
-    text = l10n.get_text(key="hello", args=args)
-    await call.message.answer(text, reply_markup=main_menu_kb(l10n=l10n), disable_web_page_preview=True)
-    await call.message.answer(l10n.get_text(key='hello-info'))
+    text = l10n.get_text(key="hello-msg", args=args)
+    await call.message.answer(text, reply_markup=main_menu_kb(l10n), disable_web_page_preview=True)

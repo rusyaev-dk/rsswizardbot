@@ -7,6 +7,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, AsyncEngine
 
 from infrastructure.api.clients.http_client import HttpClient
+from infrastructure.api.clients.rss_client import RSSClient
+from infrastructure.database.repositories.rss_repo import RSSRepository
 from infrastructure.database.repositories.users_repo import UsersRepository
 from infrastructure.database.setup import create_engine
 from l10n.translator import Translator
@@ -18,7 +20,7 @@ class ConfigProvider(Provider):
 
     @provide
     def confing(self) -> Config:
-        return load_config(".env.dist")
+        return load_config(".env")
 
 
 class DBServiceProvider(Provider):
@@ -49,15 +51,13 @@ class DBServiceProvider(Provider):
 class RepoProvider(Provider):
     scope = Scope.REQUEST
 
-    default = provide_all(UsersRepository)
+    default = provide_all(UsersRepository, RSSRepository)
 
 
 class ClientProvider(Provider):
     scope = Scope.APP
 
-    @provide
-    async def http_client(self) -> HttpClient:
-        return HttpClient()
+    default = provide_all(HttpClient, RSSClient)
 
 
 class ServiceProvider(Provider):
@@ -79,7 +79,7 @@ class ServiceProvider(Provider):
         fluent_files = [file for file in all_files if file.endswith(".ftl")]
 
         translator = Translator(
-            locales_dir_path=str(self.__locales_dir_path), locales=["ru", "uz", "en"],
+            locales_dir_path=str(self.__locales_dir_path), locales=["ru", "en"],
             resource_ids=fluent_files
         )
         return translator

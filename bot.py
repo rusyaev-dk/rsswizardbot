@@ -116,7 +116,7 @@ async def main():
     setup_global_middlewares(dp=dp)
     dp.workflow_data.update(config=config)
 
-    await setup_scheduler(container)
+    # await setup_scheduler(container)
     await on_startup(bot, config.tg_bot.admin_ids)
 
     try:

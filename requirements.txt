@@ -24,3 +24,6 @@ fluent.runtime~=0.4
 pytz~=2024.2
 dishka~=1.4.1
 typing_extensions~=4.12.2
+
+feedparser
+beautifulsoup4

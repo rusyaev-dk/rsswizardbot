@@ -25,7 +25,12 @@ class Translator:
             for locale in locales
         }
 
-    def get_text(self, key: str, args: Dict[str, Any] = None, locale: str = None) -> str:
+    def get_text(
+            self,
+            key: str,
+            args: Dict[str, Any] = None,
+            locale: str = None
+    ) -> str:
         if locale:
             return self.l10ns[locale].format_value(msg_id=key, args=args)
         return self.l10ns[self.__cur_locale].format_value(msg_id=key, args=args)

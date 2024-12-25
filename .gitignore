@@ -61,6 +61,7 @@ venv.bak/
 .pyre/
 .idea/
 .env
+.env.dist
 cache/
 
 *.db
