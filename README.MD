@@ -2,8 +2,6 @@
 
 RSS Wizard Bot is a Telegram bot that helps you manage RSS feeds and stay updated with your favorite news sources directly in Telegram.
 
----
-
 ## Features
 
 - **Add RSS Feeds**: Easily add new RSS feeds.
@@ -11,8 +9,6 @@ RSS Wizard Bot is a Telegram bot that helps you manage RSS feeds and stay update
 - **Easy Navigation**: Use pagination to browse entries.
 - **Filter Support**: Filter posts by keywords (coming soon).
 - **Delete Feeds**: Remove unnecessary RSS feeds.
-
----
 
 ## How to Run
 
@@ -49,23 +45,6 @@ RSS Wizard Bot is a Telegram bot that helps you manage RSS feeds and stay update
    ```bash
    python bot/bot.py
    ```
-
----
-
-## Docker
-
-To run the bot using Docker:
-
-1. **Build the container:**
-   ```bash
-   docker-compose build
-   ```
-
-2. **Start the containers:**
-   ```bash
-   docker-compose up -d
-   ```
----
 
 ## Technologies Used
 
