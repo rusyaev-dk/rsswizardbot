@@ -76,6 +76,7 @@ class TgBot:
     admin_ids: List[int]
     operator_ids: List[int]
     use_redis: bool
+    support_username: str
 
     @staticmethod
     def from_env(env: Env):
@@ -86,8 +87,14 @@ class TgBot:
         admin_ids = env.list("ADMINS", subcast=int)
         operator_ids = env.list("OPERATORS", subcast=int)
         use_redis = env.bool("USE_REDIS")
-        return TgBot(token=token, admin_ids=admin_ids,
-                     operator_ids=operator_ids, use_redis=use_redis)
+        support_username = env.str("SUPPORT_USERNAME")
+        return TgBot(
+            token=token,
+            admin_ids=admin_ids,
+            operator_ids=operator_ids,
+            use_redis=use_redis,
+            support_username=support_username
+        )
 
 
 @dataclass

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import html
 
+from infrastructure.database.repositories.users_repo import UsersRepository
 from l10n.translator import Translator
 
 
@@ -50,4 +51,25 @@ def clean_summary(summary: str) -> str:
 def truncate_text(text: str, max_length: int = 300) -> str:
     if len(text) > max_length:
         return text[:max_length].strip() + "..."
+    return text
+
+
+async def format_statistics_info(
+        users_repo: UsersRepository
+) -> str:
+
+    total_users_count = await users_repo.get_users_count()
+    active_users_count = await users_repo.get_active_users_count()
+
+    ru_users_count = await users_repo.get_users_count_by_language(language_code="ru")
+    en_users_count = await users_repo.get_users_count_by_language(language_code="en")
+
+    text = (
+        f"Всего пользователей: <b>{total_users_count}</b> чел.\n"
+        f"Активных пользователей: <b>{active_users_count}</b> чел.\n\n"
+        f"Распределение по языкам:\n"
+        f"🇷🇺: <b>{ru_users_count}</b> чел. <b>~{int(ru_users_count / active_users_count * 100)}%</b>\n"
+        f"🇬🇧: <b>{en_users_count}</b> чел. <b>~{int(en_users_count / active_users_count * 100)}%</b>\n"
+    )
+
     return text

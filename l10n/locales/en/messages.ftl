@@ -28,3 +28,7 @@ main-menu-msg = Main menu:
 settings-applied-msg = ✅ Settings applied
 
 choose-rss-msg = Choose a feed:
+
+help-msg =
+    🛠 If something went wrong, click <b>/start</b> to restart the bot.
+    Please report the error to the administration: <b>{ $support_username }</b>

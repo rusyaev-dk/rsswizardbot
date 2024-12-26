@@ -1,10 +1,11 @@
 from typing import Optional
 
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.models import UserLocal
+
 
 class UsersRepository:
     def __init__(self, session: AsyncSession):
@@ -45,6 +46,13 @@ class UsersRepository:
         result = await self.__session.scalar(stmt)
         return result
 
+    async def get_users_count_by_language(self, language_code: str) -> int:
+        stmt = select(func.count(UserLocal.telegram_id)).where(
+            and_(UserLocal.is_active == True, UserLocal.language_code == language_code)
+        )
+        result = await self.__session.scalar(stmt)
+        return result or 0
+
     async def get_user_language_code(self, telegram_id: int) -> str:
         stmt = select(UserLocal.language_code).where(UserLocal.telegram_id == telegram_id)
         result = await self.__session.scalar(stmt)
@@ -55,8 +63,13 @@ class UsersRepository:
         result = await self.__session.execute(stmt)
         return result.scalars().all()
 
-    async def get_users_count(self, *clauses) -> int:
-        stmt = select(func.count(UserLocal.telegram_id)).where(*clauses)
+    async def get_active_users_count(self) -> int:
+        stmt = select(func.count(UserLocal.telegram_id)).where(UserLocal.is_active == True)
+        result = await self.__session.scalar(stmt)
+        return result or 0
+
+    async def get_users_count(self) -> int:
+        stmt = select(func.count(UserLocal.telegram_id))
         result = await self.__session.scalar(stmt)
         return result or 0
 
