@@ -32,8 +32,7 @@ class RSSClient:
                 link = self.extract_link(entry)
                 cleaned_summary = clean_summary(entry.get("summary", ""))
                 entries.append({
-                    "title": truncate_text(entry.get("title", ""), max_length=380),
-                    "summary": truncate_text(cleaned_summary, max_length=3400),
+                    "title": truncate_text(entry.get("title", ""), max_length=250),
                     "short_summary": truncate_text(cleaned_summary, max_length=250),
                     "link": link
                 })

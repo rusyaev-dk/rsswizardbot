@@ -115,11 +115,7 @@ view_feed_error_window = Window(
 more_details_window = Window(
     Jinja(
         "📢 <b>{{ feed_name }}</b>\n\n"
-        "📄 <b>{{ entries[entry_idx].title }}</b>\n\n"
-        "{% if entries[entry_idx].summary %}\n"
-        "▪️ {{ entries[entry_idx].summary }}\n\n"
-        "{% endif %}"
-        "🔗 <a href='{{ entries[entry_idx].link }}'>{{ go_to_source_text }}</a>\n\n"
+        "🔗 <a href='{{ entries[entry_idx].link }}'>{{ go_to_source_text }}</a>"
     ),
     Row(
         Button(
