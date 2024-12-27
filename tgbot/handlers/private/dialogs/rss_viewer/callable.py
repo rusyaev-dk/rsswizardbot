@@ -62,6 +62,15 @@ async def select_rss_feed(
     await dialog_manager.switch_to(ViewRssSG.VIEW_FEED)
 
 
+async def more_details(
+        call: CallbackQuery,
+        button: Button,
+        dialog_manager: DialogManager,
+):
+    dialog_manager.dialog_data["current_page"] = 1
+    await dialog_manager.switch_to(ViewRssSG.MORE_DETAILS_VIEW)
+
+
 @inject
 async def delete_rss(
         call: CallbackQuery,
@@ -101,7 +110,7 @@ async def prev_page(
         return
 
     dialog_manager.dialog_data["current_page"] = current_page - 1
-    await dialog_manager.switch_to(ViewRssSG.VIEW_FEED)
+    await dialog_manager.switch_to(dialog_manager.current_context().state)
 
 
 async def next_page(
@@ -117,7 +126,7 @@ async def next_page(
         return
 
     dialog_manager.dialog_data["current_page"] = current_page + 1
-    await dialog_manager.switch_to(ViewRssSG.VIEW_FEED)
+    await dialog_manager.switch_to(dialog_manager.current_context().state)
 
 
 async def cancel_feed_viewer(
@@ -127,3 +136,12 @@ async def cancel_feed_viewer(
 ):
     dialog_manager.dialog_data["current_page"] = 1
     await dialog_manager.switch_to(ViewRssSG.SELECT_RSS)
+
+
+async def cancel_single_pub_viewer(
+        call: CallbackQuery,
+        button: Button,
+        dialog_manager: DialogManager
+):
+    dialog_manager.dialog_data["current_page"] = 1
+    await dialog_manager.switch_to(ViewRssSG.VIEW_FEED)

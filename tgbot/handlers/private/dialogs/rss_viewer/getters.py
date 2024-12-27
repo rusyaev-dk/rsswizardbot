@@ -1,3 +1,5 @@
+import random
+
 from dishka import FromDishka
 from dishka.integrations.aiogram_dialog import inject
 
@@ -20,6 +22,7 @@ async def rss_list_getter(
     rss_list = [
         {
             "name": extract_domain(rss.rss_url),
+            "url": rss.rss_url,
             "rss_id": rss.rss_id
         } for rss in user_rss
     ]
@@ -61,8 +64,45 @@ async def feed_getter(
         "read_more_text": l10n.get_text(key="read-more"),
         "back_btn_text": l10n.get_text(key="back-btn"),
         "delete_rss_text": l10n.get_text(key="delete-rss-btn"),
+        "more_details_text": l10n.get_text(key="more-details-btn"),
         "show_pagination": total_pages > 1
     }
+    return data
+
+
+@inject
+async def single_publication_getter(
+        dialog_manager,
+        l10n: FromDishka[Translator],
+        rss_repo: FromDishka[RSSRepository],
+        **kwargs
+):
+    rss_id = dialog_manager.dialog_data.get("selected_rss_id")
+    rss = await rss_repo.get_rss_by_id(rss_id=rss_id)
+    entries = dialog_manager.dialog_data.get("entries")
+
+    current_page = dialog_manager.dialog_data.get("current_page", 1)
+    per_page = 1
+    start = (current_page - 1) * per_page
+    end = start + per_page
+
+    total_pages = (len(entries) + per_page - 1) // per_page
+    dialog_manager.dialog_data["total_pages"] = total_pages
+
+    page_entries = entries[start:end]
+
+    data = {
+        "entries": page_entries,
+        "entry_idx": 0,
+        "feed_name": extract_domain(rss.rss_url),
+        "read_more_text": l10n.get_text(key="read-more"),
+        "back_btn_text": l10n.get_text(key="back-btn"),
+        "go_to_source_text": l10n.get_text(key="go-to-source"),
+        "show_pagination": total_pages > 1,
+        "current_page": current_page,
+        "total_pages": total_pages,
+    }
+
     return data
 
 

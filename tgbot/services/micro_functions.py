@@ -45,7 +45,7 @@ def clean_summary(summary: str) -> str:
     soup = BeautifulSoup(decoded_summary, "html.parser")
     cleaned_text = soup.get_text()
 
-    return truncate_text(cleaned_text.strip(), max_length=250)
+    return cleaned_text.strip()
 
 
 def truncate_text(text: str, max_length: int = 300) -> str:

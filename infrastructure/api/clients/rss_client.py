@@ -6,7 +6,7 @@ import aiohttp
 import feedparser
 
 from infrastructure.api.clients.http_client import HttpClient
-from tgbot.services.micro_functions import clean_summary
+from tgbot.services.micro_functions import clean_summary, truncate_text
 
 
 class RSSClient:
@@ -30,9 +30,11 @@ class RSSClient:
 
             for entry in feed.entries:
                 link = self.extract_link(entry)
+                cleaned_summary = clean_summary(entry.get("summary", ""))
                 entries.append({
-                    "title": entry.get("title", ""),
-                    "summary": clean_summary(entry.get("summary", "")),
+                    "title": truncate_text(entry.get("title", ""), max_length=380),
+                    "summary": truncate_text(cleaned_summary, max_length=3400),
+                    "short_summary": truncate_text(cleaned_summary, max_length=250),
                     "link": link
                 })
 

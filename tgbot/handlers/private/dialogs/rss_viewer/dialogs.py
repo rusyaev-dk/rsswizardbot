@@ -4,7 +4,7 @@ from aiogram_dialog.widgets.text import Format, Const, Jinja
 
 from tgbot.handlers.private.dialogs.rss_viewer.callable import *
 from tgbot.handlers.private.dialogs.rss_viewer.getters import feed_getter, rss_list_getter, \
-    delete_rss_confirmation_getter, feed_error_getter
+    delete_rss_confirmation_getter, feed_error_getter, single_publication_getter
 from tgbot.misc.states import ViewRssSG
 
 
@@ -49,8 +49,8 @@ view_feed_window = Window(
             "📢 <b>{{ feed_name }}</b>\n\n"
             "{% for entry in entries %}"
             "📄 <b>{{ entry.title }}</b>\n"
-            "{% if entry.summary %}"
-            "▪️ <i>{{ entry.summary }}</i>\n"
+            "{% if entry.short_summary %}"
+            "▪️ <i>{{ entry.short_summary }}</i>\n"
             "{% endif %}"
             "🔗 <a href='{{ entry.link }}'>{{ read_more_text }}</a>\n\n"
             "{% endfor %}"
@@ -73,15 +73,22 @@ view_feed_window = Window(
         ),
         when="show_pagination",
     ),
-    SwitchTo(
-        Format("{delete_rss_text}"),
-        id="delete_rss_btn",
-        state=ViewRssSG.DELETE_RSS_CONFIRMATION
-    ),
     Button(
-        Format("{back_btn_text}"),
-        id="back_btn",
-        on_click=cancel_feed_viewer
+        Format("{more_details_text}"),
+        id="more_details_btn",
+        on_click=more_details,
+    ),
+    Row(
+        Button(
+            Format("{back_btn_text}"),
+            id="back_btn",
+            on_click=cancel_feed_viewer
+        ),
+        SwitchTo(
+            Format("{delete_rss_text}"),
+            id="delete_rss_btn",
+            state=ViewRssSG.DELETE_RSS_CONFIRMATION
+        ),
     ),
     disable_web_page_preview=True,
     state=ViewRssSG.VIEW_FEED,
@@ -103,6 +110,42 @@ view_feed_error_window = Window(
     disable_web_page_preview=True,
     state=ViewRssSG.VIEW_FEED_ERROR,
     getter=feed_error_getter,
+)
+
+more_details_window = Window(
+    Jinja(
+        "📢 <b>{{ feed_name }}</b>\n\n"
+        "📄 <b>{{ entries[entry_idx].title }}</b>\n\n"
+        "{% if entries[entry_idx].summary %}\n"
+        "▪️ {{ entries[entry_idx].summary }}\n\n"
+        "{% endif %}"
+        "🔗 <a href='{{ entries[entry_idx].link }}'>{{ go_to_source_text }}</a>\n\n"
+    ),
+    Row(
+        Button(
+            Const("⬅️"),
+            id="prev_page_btn",
+            on_click=prev_page
+        ),
+        Button(
+            Jinja("{{current_page}}/{{total_pages}}"),
+            id="current_page_btn",
+            on_click=None
+        ),
+        Button(
+            Const("➡️"),
+            id="next_page_btn",
+            on_click=next_page
+        ),
+        when="show_pagination",
+    ),
+    Button(
+        Format("{back_btn_text}"),
+        id="back_btn",
+        on_click=cancel_single_pub_viewer
+    ),
+    state=ViewRssSG.MORE_DETAILS_VIEW,
+    getter=single_publication_getter
 )
 
 delete_rss_window = Window(
@@ -127,5 +170,6 @@ rss_dialog = Dialog(
     rss_list_window,
     view_feed_window,
     view_feed_error_window,
+    more_details_window,
     delete_rss_window
 )

@@ -14,6 +14,7 @@ class ViewRssSG(StatesGroup):
     SELECT_RSS = State()
     DELETE_RSS_CONFIRMATION = State()
     VIEW_FEED_ERROR = State()
+    MORE_DETAILS_VIEW = State()
     VIEW_FEED = State()
 
 

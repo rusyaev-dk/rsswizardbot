@@ -10,4 +10,6 @@ change-language-btn = 🌐 Change language
 
 yes-btn = ✅ Yes
 no-btn = ❌ No
-delete-rss-btn = Delete RSS
+delete-rss-btn = 🗑 Delete RSS
+
+more-details-btn = 📰 More details
